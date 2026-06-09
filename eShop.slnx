@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/EShop.Contracts/EShop.Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/EShop.Messaging.Kafka/EShop.Messaging.Kafka.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Notification/">
+    <Project Path="src/Services/Notification/Notification.Service/Notification.Service.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Order/">
+    <Project Path="src/Services/Order/Order.Api/Order.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Payment/">
+    <Project Path="src/Services/Payment/Payment.Service/Payment.Service.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EShop.IntegrationTests/EShop.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
