@@ -13,10 +13,18 @@
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.Kafka" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BuildingBlocks\EShop.Contracts\EShop.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\EShop.Messaging.Kafka\EShop.Messaging.Kafka.csproj" />
+    <ProjectReference Include="..\..\src\Services\Order\Order.Api\Order.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

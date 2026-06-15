@@ -27,7 +27,7 @@ public sealed class ConsumerOrderServiceTests
     {
          var config = new PactConfig
         {
-            PactDir = Path.Combine(Directory.GetCurrentDirectory(), "pacts"),
+            PactDir = Path.Combine(Path.GetDirectoryName(typeof(ConsumerOrderServiceTests).Assembly.Location)!, "pacts"),
             LogLevel = PactLogLevel.Debug
         };
 
@@ -89,7 +89,49 @@ public sealed class ConsumerOrderServiceTests
             Assert.That(order.Items[0].Quantity, Is.EqualTo(2));
             Assert.That(order.Items[0].Price, Is.EqualTo(9.99m));
         });
-    }  
+    }
+
+    [Test]
+    public async Task GetOrder_ShouldReturnOrderAsync()
+    {
+        var orderId = new Guid("11111111-1111-1111-1111-111111111111");
+
+        _pact
+            .UponReceiving("get existing order by id")
+            .Given("an order with id 11111111-1111-1111-1111-111111111111 exists")
+            .WithRequest(HttpMethod.Get, $"/orders/{orderId}")
+            .WillRespond()
+            .WithStatus(System.Net.HttpStatusCode.OK)
+            .WithHeader("Content-Type", "application/json; charset=utf-8")
+            .WithJsonBody(new
+            {
+                id          = Match.Type(orderId),
+                customerId  = Match.Type("customer-123"),
+                totalAmount = Match.Decimal(19.98m),
+                createdAt   = Match.Type(DateTimeOffset.UtcNow),
+                items       = Match.MinType(new
+                {
+                    sku      = Match.Type("SKU-001"),
+                    quantity = Match.Integer(2),
+                    price    = Match.Decimal(9.99m)
+                }, 1)
+            });
+
+        await _pact.VerifyAsync(async ctx =>
+        {
+            using var client = new HttpClient { BaseAddress = ctx.MockServerUri };
+            var response = await client.GetAsync($"/orders/{orderId}");
+
+            var order = await response.Content.ReadFromJsonAsync<OrderResponse>();
+
+            Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.OK));
+            Assert.That(order, Is.Not.Null);
+            Assert.That(order!.Id, Is.Not.EqualTo(Guid.Empty));
+            Assert.That(order.CustomerId, Is.Not.Empty);
+            Assert.That(order.TotalAmount, Is.GreaterThan(0));
+            Assert.That(order.Items, Is.Not.Empty);
+        });
+    }
 }
 
 

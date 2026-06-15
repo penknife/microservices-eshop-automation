@@ -1,10 +1,4 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using EShop.IntegrationTests.Fixtures;
-using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using NUnit.Framework;
 using NotificationEntity = Notification.Service.Domain.Notification;
 
 namespace EShop.IntegrationTests
