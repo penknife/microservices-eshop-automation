@@ -8,6 +8,9 @@
   <Folder Name="/src/Services/Notification/">
     <Project Path="src/Services/Notification/Notification.Service/Notification.Service.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Audit/">
+    <Project Path="src/Services/Audit/Audit.Service/Audit.Service.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Order/">
     <Project Path="src/Services/Order/Order.Api/Order.Api.csproj" />
   </Folder>
