@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\Services\Order\Order.Api\Order.Api.csproj" />
     <ProjectReference Include="..\..\src\Services\Payment\Payment.Service\Payment.Service.csproj" />
     <ProjectReference Include="..\..\src\Services\Notification\Notification.Service\Notification.Service.csproj" />
+    <ProjectReference Include="..\..\src\Services\Audit\Audit.Service\Audit.Service.csproj" />
   </ItemGroup>
 
   <ItemGroup>

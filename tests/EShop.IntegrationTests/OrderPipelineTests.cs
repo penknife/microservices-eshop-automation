@@ -1,4 +1,9 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using EShop.IntegrationTests.Fixtures;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using NotificationEntity = Notification.Service.Domain.Notification;
 
 namespace EShop.IntegrationTests
@@ -129,6 +134,106 @@ namespace EShop.IntegrationTests
             // Message should contain either "succeeded" or "failed"
             (notification!.Message.Contains("succeeded") || notification.Message.Contains("failed"))
                 .Should().BeTrue("notification message should describe the payment outcome");
+        }
+
+        [Test]
+        public async Task Audit_Receives_Both_Events_For_Order()
+        {
+            // Arrange
+            var request = new
+            {
+                customerId = "test-customer-audit",
+                items = new[] { new { sku = "SKU-AUDIT", quantity = 1, price = 50.00m } },
+            };
+
+            // Act: create order
+            var response = await _fixture.OrderClient.PostAsJsonAsync("/orders", request);
+            response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+            var orderId = body.GetProperty("id").GetGuid();
+
+            // Poll audit DB: wait for both OrderCreated + PaymentProcessed entries (max 30s)
+            List<Audit.Service.Domain.AuditEntry> entries = [];
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                entries = await _fixture.UseAuditDbAsync(async db =>
+                    await db.AuditEntries
+                        .Where(e => e.OrderId == orderId)
+                        .OrderBy(e => e.OccurredAt)
+                        .ToListAsync());
+
+                if (entries.Count >= 2) break;
+                await Task.Delay(500);
+            }
+
+            entries.Should().HaveCount(2, "both OrderCreated and PaymentProcessed events must be audited");
+            entries[0].EventType.Should().Be(Audit.Service.Domain.AuditEventType.OrderCreated);
+            entries[0].Amount.Should().Be(50.00m);
+            entries[1].EventType.Should().Be(Audit.Service.Domain.AuditEventType.PaymentProcessed);
+            entries[1].PaymentStatus.Should().NotBeNull();
+        }
+
+        [Test]
+        public async Task Audit_Summary_Counts_Payment_Status()
+        {
+            // Arrange: create an order so at least one PaymentProcessed event is audited
+            var request = new
+            {
+                customerId = "test-customer-audit-summary",
+                items = new[] { new { sku = "SKU-SUMMARY", quantity = 1, price = 25.00m } },
+            };
+
+            var response = await _fixture.OrderClient.PostAsJsonAsync("/orders", request);
+            response.EnsureSuccessStatusCode();
+
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+            var orderId = body.GetProperty("id").GetGuid();
+
+            // Wait for PaymentProcessed audit entry
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+            Audit.Service.Domain.AuditEntry? paymentEntry = null;
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                paymentEntry = await _fixture.UseAuditDbAsync(async db =>
+                    await db.AuditEntries.FirstOrDefaultAsync(e =>
+                        e.OrderId == orderId &&
+                        e.EventType == Audit.Service.Domain.AuditEventType.PaymentProcessed));
+
+                if (paymentEntry is not null) break;
+                await Task.Delay(500);
+            }
+
+            paymentEntry.Should().NotBeNull("PaymentProcessed event must be audited before querying summary");
+
+            // Query summary endpoint
+            var auditClient = _fixture.AuditFactory.CreateClient();
+            var summaryResponse = await auditClient.GetAsync("/audit/summary");
+            summaryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var summaryBody = await summaryResponse.Content.ReadFromJsonAsync<JsonElement>(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            summaryBody.GetArrayLength().Should().BeGreaterThan(0, "at least one daily summary row must exist");
+
+            // Find today's row (may not be the first if tests run near midnight)
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            bool foundToday = false;
+            foreach (var item in summaryBody.EnumerateArray())
+            {
+                var date = DateOnly.Parse(item.GetProperty("date").GetString()!);
+                if (date == today)
+                {
+                    var succeeded = item.GetProperty("succeeded").GetInt32();
+                    var failed = item.GetProperty("failed").GetInt32();
+                    (succeeded + failed).Should().BeGreaterThan(0, "today's summary must have at least one payment entry");
+                    foundToday = true;
+                    break;
+                }
+            }
+
+            foundToday.Should().BeTrue("today's date must appear in the summary");
         }
     }
 }

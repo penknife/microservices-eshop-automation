@@ -57,18 +57,24 @@ public static class AuditEndpoints
 
     private static async Task<IResult> GetPaymentSummary(AuditDbContext db, CancellationToken ct)
     {
-        // PaymentStatus values: 1 = Succeeded, 2 = Failed (from EShop.Contracts.PaymentStatus)
-        var summary = await db.AuditEntries
+        // Materialize PaymentProcessed entries then group client-side to avoid
+        // EF Core translation limitations with DateOnly.FromDateTime + UtcDateTime.Date.
+        var rows = await db.AuditEntries
             .AsNoTracking()
             .Where(e => e.EventType == AuditEventType.PaymentProcessed)
-            .GroupBy(e => new { Date = DateOnly.FromDateTime(e.OccurredAt.UtcDateTime.Date) })
+            .Select(e => new { e.OccurredAt, e.PaymentStatus, e.Amount })
+            .ToListAsync(ct);
+
+        // PaymentStatus values: 1 = Succeeded, 2 = Failed (from EShop.Contracts.PaymentStatus)
+        var summary = rows
+            .GroupBy(e => DateOnly.FromDateTime(e.OccurredAt.UtcDateTime.Date))
             .Select(g => new PaymentSummaryResponse(
-                g.Key.Date,
+                g.Key,
                 g.Count(e => e.PaymentStatus == 1),
                 g.Count(e => e.PaymentStatus == 2),
                 g.Sum(e => e.Amount)))
             .OrderByDescending(r => r.Date)
-            .ToListAsync(ct);
+            .ToList();
 
         return Results.Ok(summary);
     }
