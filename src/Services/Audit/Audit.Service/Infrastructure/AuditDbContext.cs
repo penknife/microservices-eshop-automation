@@ -25,6 +25,7 @@ public class AuditDbContext : DbContext
             b.Property(x => x.EventType).HasConversion<int>();
             b.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             b.Property(x => x.FailureReason).HasMaxLength(2000);
+            b.Property(x => x.PaymentStatus).HasConversion<int>();
             b.HasIndex(x => x.OrderId).HasDatabaseName("ix_audit_order_id");
             b.HasIndex(x => x.OccurredAt).HasDatabaseName("ix_audit_occurred_at");
         });

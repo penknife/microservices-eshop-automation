@@ -1,4 +1,6 @@
 // src/Services/Audit/Audit.Service/Domain/AuditEntry.cs
+using EShop.Contracts;
+
 namespace Audit.Service.Domain;
 
 public enum AuditEventType
@@ -15,7 +17,7 @@ public class AuditEntry
     public Guid OrderId { get; set; }
     public decimal Amount { get; set; }
     // Null for OrderCreated entries
-    public int? PaymentStatus { get; set; }
+    public EShop.Contracts.PaymentStatus? PaymentStatus { get; set; }
     public string? FailureReason { get; set; }
     public DateTimeOffset OccurredAt { get; set; }
     public DateTimeOffset RecordedAt { get; set; }

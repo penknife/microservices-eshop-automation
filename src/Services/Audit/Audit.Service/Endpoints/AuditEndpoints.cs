@@ -1,6 +1,7 @@
 // src/Services/Audit/Audit.Service/Endpoints/AuditEndpoints.cs
 using Audit.Service.Domain;
 using Audit.Service.Infrastructure;
+using EShop.Contracts;
 using Microsoft.EntityFrameworkCore;
 
 namespace Audit.Service.Endpoints;
@@ -11,7 +12,7 @@ public sealed record AuditEntryResponse(
     string EventType,
     Guid OrderId,
     decimal Amount,
-    int? PaymentStatus,
+    EShop.Contracts.PaymentStatus? PaymentStatus,
     string? FailureReason,
     DateTimeOffset OccurredAt,
     DateTimeOffset RecordedAt);
@@ -52,6 +53,7 @@ public static class AuditEndpoints
                 e.RecordedAt))
             .ToListAsync(ct);
 
+        // Returns empty array for unknown orders — an empty audit trail is valid for this endpoint
         return Results.Ok(entries);
     }
 
@@ -65,13 +67,12 @@ public static class AuditEndpoints
             .Select(e => new { e.OccurredAt, e.PaymentStatus, e.Amount })
             .ToListAsync(ct);
 
-        // PaymentStatus values: 1 = Succeeded, 2 = Failed (from EShop.Contracts.PaymentStatus)
         var summary = rows
             .GroupBy(e => DateOnly.FromDateTime(e.OccurredAt.UtcDateTime.Date))
             .Select(g => new PaymentSummaryResponse(
                 g.Key,
-                g.Count(e => e.PaymentStatus == 1),
-                g.Count(e => e.PaymentStatus == 2),
+                g.Count(e => e.PaymentStatus == EShop.Contracts.PaymentStatus.Succeeded),
+                g.Count(e => e.PaymentStatus == EShop.Contracts.PaymentStatus.Failed),
                 g.Sum(e => e.Amount)))
             .OrderByDescending(r => r.Date)
             .ToList();

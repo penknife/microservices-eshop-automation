@@ -41,7 +41,7 @@ public class PaymentProcessedAuditHandler : IIntegrationEventHandler<PaymentProc
             EventType = AuditEventType.PaymentProcessed,
             OrderId = @event.OrderId,
             Amount = @event.Amount,
-            PaymentStatus = (int)@event.Status,
+            PaymentStatus = @event.Status,
             FailureReason = @event.FailureReason,
             OccurredAt = @event.OccurredAt,
             RecordedAt = DateTimeOffset.UtcNow,
