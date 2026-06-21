@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +26,8 @@
     <ProjectReference Include="..\..\src\BuildingBlocks\EShop.Contracts\EShop.Contracts.csproj" />
     <ProjectReference Include="..\..\src\BuildingBlocks\EShop.Messaging.Kafka\EShop.Messaging.Kafka.csproj" />
     <ProjectReference Include="..\..\src\Services\Order\Order.Api\Order.Api.csproj" />
+    <ProjectReference Include="..\..\src\Services\Payment\Payment.Service\Payment.Service.csproj" />
+    <ProjectReference Include="..\..\src\Services\Audit\Audit.Service\Audit.Service.csproj" />
   </ItemGroup>
 
   <ItemGroup>
