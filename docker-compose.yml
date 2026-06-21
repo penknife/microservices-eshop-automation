@@ -179,8 +179,53 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  postgres-audit:
+    image: postgres:16
+    container_name: eshop-postgres-audit
+    environment:
+      POSTGRES_DB: audit
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-audit-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d audit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: src/Services/Audit/Audit.Service/Dockerfile
+    container_name: eshop-audit-service
+    ports:
+      - "8084:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-audit:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=postgres-audit;Port=5432;Database=audit;Username=postgres;Password=postgres"
+      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__ConsumerGroupId: "audit-service"
+      Database__AutoMigrate: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
 volumes:
   kafka-data:
   postgres-orders-data:
   postgres-payments-data:
   postgres-notifications-data:
+  postgres-audit-data:
